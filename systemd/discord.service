@@ -1,0 +1,14 @@
+[Unit]
+Description=Discord bot that monitors #let-me-in and sends commands to the LED controller
+After=led.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/hacka_shelves.env
+ExecStart=/usr/local/bin/discord_bot.py
+User=nobody
+Group=daemon
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

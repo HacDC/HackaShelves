@@ -1,0 +1,13 @@
+[Unit]
+Description=X715 Power Management Hat Fan Control
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/pwm_fan_control.py
+User=root
+Group=root
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

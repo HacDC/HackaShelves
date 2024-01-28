@@ -1,0 +1,14 @@
+[Unit]
+Description=Service that listens for commands on port 5000 and controls the LEDs
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/hacka_shelves.env
+ExecStart=/usr/local/bin/led_server.py
+User=root
+Group=root
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
