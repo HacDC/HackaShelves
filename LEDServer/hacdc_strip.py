@@ -104,11 +104,11 @@ class HacDCStrip:
             self, strip: int, start: int, end: int,
             col: RGBW, wait_ms: int = 100):
         for p in range(start, end):
-            self.strips[strip].setPixelColor(p, col)
+            self.setPixelColor(self.strips[strip], p, col)
         self.strips[strip].show()
         time.sleep(wait_ms/1000.)
         for p in range(start, end):
-            self.strips[strip].setPixelColor(p, int(self.state[strip, p]))
+            self.setPixelColor(self.strips[strip], p, int(self.state[strip, p]))
         self.strips[strip].show()
 
     ###########################################################################
@@ -120,12 +120,15 @@ class HacDCStrip:
     def setXPixelColor(self, n: int, col: RGBW):
         self.state[:,n] = col
         for strip in self.strips:
-            strip.setPixelColor(n, col)
+            self.setPixelColor(strip, n, col)
+
+    ###########################################################################
+    def setPixelColor(self, strip, p, col):
+        strip.setPixelColor(p, col)
 
     ###########################################################################
     def show(self, wait_ms: int = 0):
         for strip in self.strips:
             strip.show()
         time.sleep(wait_ms/1000.)
-
 
