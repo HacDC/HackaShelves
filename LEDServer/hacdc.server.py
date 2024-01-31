@@ -2,7 +2,7 @@
 # LED strips configuration (top to bottom)
 LED_PINS       = (10, 12, 21)
 LED_COUNTS     = (60, 60, 36)
-LED_SECTIONS   = (24, 36)
+LED_SECTIONS   = (36, 60)
 LED_BRIGHTNESS = 192
 
 cfg = {}
@@ -27,7 +27,7 @@ def init_led():
     global HacDCStrip
     if "HacDCStrip" not in globals():
         from hacdc_strip import HacDCStrip
-    return HacDCStrip(LED_PINS, LED_COUNTS, LED_SECTIONS, LED_BRIGHTNESS)
+    return HacDCStrip(LED_PINS, LED_COUNTS, LED_SECTIONS, LED_BRIGHTNESS, cfg["debug"])
 
 ###############################################################################
 def get_cmd(net):
@@ -41,14 +41,15 @@ def get_cmd(net):
         while data := conn.recv(1024):
             cmd += data.decode()
     except:
-        pass
+        cmd = cmd.strip()
 
     # Close the connection
     conn.close()
 
-    print(f"Received from {addr}: {cmd}") # TODO Proper logs
+    if cfg["debug"]: print(f"\x1b[0G\x1b[2K", end="")
+    print(f"CMD {addr[0]}:{addr[1]}: {cmd}", flush=True)
 
-    return cmd.strip()
+    return cmd
 
 ###############################################################################
 def run(net, led):
@@ -66,7 +67,6 @@ def run(net, led):
             meth = task.group(1)
             parm = task.group(2).split() if task.group(2) else []
             parm = [int(p) for p in parm]
-            print(meth, parm, flush=True)
         else:
             continue
 
@@ -89,13 +89,7 @@ def run(net, led):
                     print(f"Invalid parameter count for method: {meth}",
                           f"(expected {len(prm)}, got {len(parm)})")
                     continue
-#                try:
-                print(func, meth, *parm)
                 func(*parm)
-#                except Exception as e:
-                    # Broad exception handler to prevent crashes
-#                    print(f"Exception while running method: {meth}",
-#                          f"with params: {parm}", e)
             else:
                 print(f"Invalid method: {meth}")
         else:
@@ -119,5 +113,6 @@ if __name__ == '__main__':
     assert "LED_SERVICE_PORT" in os.environ
     cfg["lport"] = os.environ["LED_SERVICE_PORT"]
     cfg["lport"] = int(cfg["lport"])
+    cfg["debug"] = "LED_DEBUG" in os.environ
 
     main()
