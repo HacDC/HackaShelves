@@ -1,0 +1,14 @@
+[Unit]
+Description=Network scan bot that monitors the local net and sends commands to the LED controller
+After=led.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/hacka_shelves.env
+ExecStart=/usr/local/bin/netwatch_bot.py
+User=nobody
+Group=daemon
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

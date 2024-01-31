@@ -6,8 +6,9 @@ CONFIG_DIR=/etc
 INSTALL_DIR=/usr/local/bin
 SYSTEMD_DIR=/etc/systemd/system
 
-# Install python depencies
-python3 -m pip install RPi.GPIO discord 
+# Install depencies
+apt-get install -y nmap
+python3 -m pip install -r requirements.txt
 
 # Install the fan-control script for the X715 power management hat
 cp FanControl/pwm_fan_control.py ${INSTALL_DIR}
@@ -32,6 +33,11 @@ chmod 0700 ${INSTALL_DIR}/led_server.py
 cp DiscordBot/discord_bot.py ${INSTALL_DIR}
 chmod 0700 ${INSTALL_DIR}/discord_bot.py
 chown nobody:daemon ${INSTALL_DIR}/discord_bot.py
+
+# Install the NetWatch bot
+cp NetWatch/netwatch_bot.py ${INSTALL_DIR}
+chmod 0700 ${INSTALL_DIR}/netwatch_bot.py
+chown nobody:daemon ${INSTALL_DIR}/netwatch_bot.py
 
 # Install the systemd service scripts
 cp systemd/*.service ${SYSTEMD_DIR}
