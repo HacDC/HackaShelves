@@ -29,6 +29,11 @@ fi
 cat LEDServer/hacdc_strip.py LEDServer/hacdc.server.py > ${INSTALL_DIR}/led_server.py
 chmod 0700 ${INSTALL_DIR}/led_server.py
 
+# Install the sound server
+cp SndServer/snd_server.py ${INSTALL_DIR}
+chmod 0700 ${INSTALL_DIR}/snd_server.py
+chown hacdc:hacdc ${INSTALL_DIR}/snd_server.py
+
 # Install the Discord bot
 cp DiscordBot/discord_bot.py ${INSTALL_DIR}
 chmod 0700 ${INSTALL_DIR}/discord_bot.py

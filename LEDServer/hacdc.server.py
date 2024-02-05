@@ -27,7 +27,9 @@ def init_led():
     global HacDCStrip
     if "HacDCStrip" not in globals():
         from hacdc_strip import HacDCStrip
-    return HacDCStrip(LED_PINS, LED_COUNTS, LED_SECTIONS, LED_BRIGHTNESS, cfg["debug"])
+    return HacDCStrip(
+            LED_PINS, LED_COUNTS, LED_SECTIONS, LED_BRIGHTNESS,
+            cfg["sport"], cfg["debug"])
 
 ###############################################################################
 def get_cmd(net):
@@ -111,8 +113,11 @@ def main():
 if __name__ == '__main__':
     import os
     assert "LED_SERVICE_PORT" in os.environ
+    assert "SND_SERVICE_PORT" in os.environ
     cfg["lport"] = os.environ["LED_SERVICE_PORT"]
     cfg["lport"] = int(cfg["lport"])
+    cfg["sport"] = os.environ["SND_SERVICE_PORT"]
+    cfg["sport"] = int(cfg["sport"])
     cfg["debug"] = "LED_DEBUG" in os.environ
 
     main()

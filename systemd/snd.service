@@ -1,0 +1,14 @@
+[Unit]
+Description=Service that listens for commands on port 4000 and plays sounds
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/hacka_shelves.env
+ExecStart=/usr/local/bin/snd_server.py
+User=hacdc
+Group=daemon
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

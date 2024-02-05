@@ -6,6 +6,7 @@
 - `NetWatch         `: Bot that monitors the local network and turns on the lights when someone connects
 - `FanControl       `: Basic fan controller for the Raspberry Pi
 - `LEDServer        `: Service that listens for commands on port 5000 and controls the LEDs
+- `SndServer        `: Service that listens for commands on port 4000 and plays sounds
 - `hacka_shelves.env`: Configuration file (do not git commit your Discord token!)
 - `install.sh       `: Installation script to run with sudo
 - `systemd          `: Scripts used to automatically start all services on reboot
@@ -17,6 +18,7 @@
 3. Check if the services run properly:
     -  `journalctl -fn100 -u discord`
     -  `journalctl -fn100 -u netwatch`
+    -  `journalctl -fn100 -u snd`
     -  `journalctl -fn100 -u led`
     -  `journalctl -fn100 -u fan`
 
@@ -25,18 +27,34 @@
 To add new animations, edit `LEDServer/hacdc_strip.py`. New animation method
 names should end with `_on`, `_off` or `_anim`.
 
-## Control
+## LED Control
+
+For now, the port is only open locally, so you have to SSH into the Pi:
 ```
 $ ssh hacdc@lumen0
 $ echo CMD | nc localhost 5000
 $ echo let_me_in_anim | nc localhost 5000
 $ echo let_me_in_anim 1 3 1000 | nc localhost 5000
 ```
-For now, the port is only open locally, so you have to SSH into the Pi.
-
-CMD can be: lightsaber\_on/off, instant\_on/off, let\_me\_in\_anim
+CMD can be:
+- `lightsaber\_on` / `lightsaber_off`
+- `instant\_on` / `instant_off`
+- `flicker_on` / `flickr_off`
+- `let\_me\_in\_anim`
 
 Parameters depend on the method called, RTFC.
+
+## Sound Control
+
+Add your mp3 of choice to `/home/hacdc/mp3`. To play it:
+```
+$ ssh hacdc@lumen0
+$ echo filename.mp3 | nc localhost 4000
+```
+The Pi must be connected to a bluetooth speaker, for now:
+```
+$ bluetoothctl connect 40:ef:4c:1d:70:a1
+```
 
 ## Dev
 
