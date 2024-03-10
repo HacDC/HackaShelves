@@ -7,9 +7,18 @@ cfg = {}
 ###############################################################################
 def led_send_cmd(cmd):
     import socket
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect(('localhost', cfg["lport"]))
-        sock.sendall(cmd.encode())
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((cfg["lumen1_addr"], cfg["lumen1_port"]))
+            sock.sendall(cmd.encode())
+    except:
+        pass
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect(('localhost', cfg["lport"]))
+            sock.sendall(cmd.encode())
+    except:
+        pass
 
 ###############################################################################
 def netscan(nm):
@@ -30,36 +39,53 @@ def main():
     nm = nmap.PortScanner()
     then = None
     lit = False
+    brained = False
     while True:
+        # Scan the network
         if then != dt.now().day:
             # Refresh baseline at midnight
             then, baseline = netscan(nm)
             past, current = baseline, baseline
-            lit = True
+            lit, brained = True, False
         else:
+            # Routine scan
             past = current
             _, current = netscan(nm)
-        print(lit, baseline, past, current) # FIXME
+
+        print(lit, brained, baseline, current - baseline, flush=True)
+
+        # Play custom animation if conditions are met
+        if baseline < current:
+            for ip in current - baseline:
+                if not brained and get_mac_linux(ip) == "ac:3e:b1:03:34:d1":
+                    # Play Braaains animation
+                    led_send_cmd("braaains_anim")
+                    lit, brained = True, True
+                else:
+                    # Play other animations
+                    pass
+
+        # Turn the lights on/off as appropriate
         if lit and baseline >= current and baseline >= past:
+            # Everyone disconnected, turn off
             led_send_cmd("lightsaber_off")
             lit = False
-        elif not lit and baseline < current:
-            for ip in current - baseline:
-                print(ip, get_mac_linux(ip), flush=True)
-                if get_mac_linux(ip) == "ac:3e:b1:03:34:d1":
-                    led_send_cmd("braaains_anim")
-                    lit = True
         elif lit or baseline < past and baseline < current:
+            # Someone new steadily connected, turn on
             led_send_cmd("lightsaber_on")
             lit = True
+
         time.sleep(60)
 
 ###############################################################################
 if __name__ == '__main__':
     import os
     assert "LED_SERVICE_PORT" in os.environ
-    cfg["lport"] = os.environ["LED_SERVICE_PORT"]
-    cfg["lport"] = int(cfg["lport"])
+    assert "LUMEN1_ADDR"      in os.environ
+    assert "LUMEN1_PORT"      in os.environ
+    cfg["lport"] = int(os.environ["LED_SERVICE_PORT"])
+    cfg["lumen1_addr"] = os.environ["LUMEN1_ADDR"]
+    cfg["lumen1_port"] = int(os.environ["LUMEN1_PORT"])
 
     main()
 

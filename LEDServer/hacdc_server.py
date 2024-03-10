@@ -1,10 +1,4 @@
 
-# LED strips configuration (top to bottom)
-LED_PINS       = (10, 12, 21)
-LED_COUNTS     = (60, 60, 36)
-LED_SECTIONS   = (36, 60)
-LED_BRIGHTNESS = 192
-
 cfg = {}
 
 ###############################################################################
@@ -14,7 +8,7 @@ def init_net():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Bind the socket to the port
-    sock.bind(('localhost', cfg["lport"]))
+    sock.bind(('0.0.0.0', cfg["lport"]))
 
     # Listen for incoming connections
     sock.listen(1)
@@ -28,30 +22,34 @@ def init_led():
     if "HacDCStrip" not in globals():
         from hacdc_strip import HacDCStrip
     return HacDCStrip(
-            LED_PINS, LED_COUNTS, LED_SECTIONS, LED_BRIGHTNESS,
-            cfg["sport"], cfg["debug"])
+            cfg["lpins"], cfg["lcnts"], cfg["lsecs"], cfg["lbrit"], cfg["sport"],
+            cfg["debug"], (cfg["lumen1_addr"], cfg["lumen1_port"]))
 
 ###############################################################################
 def get_cmd(net):
     # Wait for a connection
     conn, addr = net.accept()
-    conn.settimeout(1.)
+    conn.settimeout(10.)
 
     # Receive data in small chunks
     cmd = ""
     try:
-        while data := conn.recv(1024):
-            cmd += data.decode()
+        while (c := conn.recv(1).decode()) != "\n":
+            cmd += c
     except:
         cmd = cmd.strip()
-
-    # Close the connection
-    conn.close()
 
     if cfg["debug"]: print(f"\x1b[0G\x1b[2K", end="")
     print(f"CMD {addr[0]}:{addr[1]}: {cmd}", flush=True)
 
-    return cmd
+    return conn, cmd
+
+def put_res(conn, res):
+    try:
+        conn.sendall(f"{res}\n".encode())
+        conn.close()
+    except:
+        pass
 
 ###############################################################################
 def run(net, led):
@@ -62,7 +60,7 @@ def run(net, led):
 
     while True:
         # Recieve a command from a client
-        cmd = get_cmd(net)
+        conn, cmd = get_cmd(net)
 
         # Parse the type of task requested
         if task := pattern.match(cmd):
@@ -70,11 +68,13 @@ def run(net, led):
             parm = task.group(2).split() if task.group(2) else []
             parm = [int(p) for p in parm]
         else:
+            put_res(conn, "invalid format")
             continue
 
         # Restrict which methods can be called
         if not meth.endswith(("_on", "_off", "_anim")):
             print(f"Restricted method: {meth}")
+            put_res(conn, "restricted method")
             continue
 
         # Run the method
@@ -90,12 +90,16 @@ def run(net, led):
                 if not req <= len(parm) <= len(prm):
                     print(f"Invalid parameter count for method: {meth}",
                           f"(expected {len(prm)}, got {len(parm)})")
+                    put_res(conn, "invalid parameters")
                     continue
                 func(*parm)
+                put_res(conn, "ok")
             else:
                 print(f"Invalid method: {meth}")
+                put_res(conn, "invalid method")
         else:
             print(f"Unsupported method: {meth}")
+            put_res(conn, "unsupported method")
 
 ###############################################################################
 def main():
@@ -114,10 +118,21 @@ if __name__ == '__main__':
     import os
     assert "LED_SERVICE_PORT" in os.environ
     assert "SND_SERVICE_PORT" in os.environ
-    cfg["lport"] = os.environ["LED_SERVICE_PORT"]
-    cfg["lport"] = int(cfg["lport"])
-    cfg["sport"] = os.environ["SND_SERVICE_PORT"]
-    cfg["sport"] = int(cfg["sport"])
+    assert "LED_PINS"         in os.environ
+    assert "LED_COUNTS"       in os.environ
+    assert "LED_SECTIONS"     in os.environ
+    assert "LED_BRIGHTNESS"   in os.environ
+    assert "LUMEN1_ADDR"      in os.environ
+    assert "LUMEN1_PORT"      in os.environ
+
+    cfg["lport"] = int(os.environ["LED_SERVICE_PORT"])
+    cfg["sport"] = int(os.environ["SND_SERVICE_PORT"])
+    cfg["lpins"] = [int(p) for p in os.environ["LED_PINS"].split(",")]
+    cfg["lcnts"] = [int(c) for c in os.environ["LED_COUNTS"].split(",")]
+    cfg["lsecs"] = [int(s) for s in os.environ["LED_SECTIONS"].split(",")]
+    cfg["lbrit"] = int(os.environ["LED_BRIGHTNESS"])
+    cfg["lumen1_addr"] = os.environ["LUMEN1_ADDR"]
+    cfg["lumen1_port"] = int(os.environ["LUMEN1_PORT"])
     cfg["debug"] = "LED_DEBUG" in os.environ
 
     main()

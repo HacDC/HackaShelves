@@ -16,7 +16,8 @@ class HacDCStrip:
             sections: List[int],
             brightness: int,
             snd_port: int,
-            debug: bool = False):
+            debug: bool,
+            lumen1: tuple[str, int]):
 
         assert 0 < brightness < 256
         assert len(pins) == len(lengths)
@@ -31,13 +32,14 @@ class HacDCStrip:
         self.nsc = len(sections)
         self.spt = snd_port
         self.dbg = debug
+        self.lm1 = lumen1
 
-        # Build a list of all LED sections
-        self.sections = []
+        # Build a list of all LED boxes
+        self.boxes = []
         for strip in range(self.cnt):
             for sec in range(self.nsc):
                 if self.len[strip] >= self.sec[sec+1]:
-                    self.sections += [(strip, self.sec[sec], self.sec[sec+1])]
+                    self.boxes += [(strip, self.sec[sec], self.sec[sec+1])]
         self.states = np.zeros((self.cnt, self.max), dtype=int)
 
         # Initialize the LED strips
@@ -100,11 +102,11 @@ class HacDCStrip:
         # Turn on random section with random flickr
         mxr = 2
         for rep0 in range(mxr):
-            for sec in random.sample(self.sections, len(self.sections)):
+            for sec in random.sample(self.boxes, len(self.boxes)):
                 for rep1 in range(random.randint(1,3)):
                     self.blinkStrip(*sec, col)
                 if rep0 == mxr-1 or random.randint(0,1):
-                    self.setSectionColor(*sec, col)
+                    self.setBoxColor(*sec, col)
                     self.show()
 
     ###########################################################################
@@ -120,6 +122,21 @@ class HacDCStrip:
             time.sleep(wait_ms/1000.)
 
     ###########################################################################
+    def let_me_the_fuck_in_anim(self, repeat = 3, wait_ms: int = 100):
+        for r in range(repeat):
+            self.let_me_in_once_anim(reverse=1, wait_ms=wait_ms)
+            self.led_send_cmd(f"let_me_in_once_anim 0 {wait_ms}")
+
+    def let_me_in_once_anim(self, reverse: int = 0, wait_ms: int = 100):
+        states = self.states.copy()
+        for s in range(self.nsc):
+            sec = self.nsc-s-1 if reverse else s
+            self.setSectionColor(sec, Color(192,0,0,0))
+            self.show(wait_ms)
+            self.resetSectionColor(sec, states)
+        self.show()
+
+    ###########################################################################
     def braaains_anim(self):
         states = self.states.copy()
         self.flicker_off()
@@ -127,7 +144,7 @@ class HacDCStrip:
         self.snd_send_cmd("braaains.mp3")
         col = RGBW(111,175,32,0)
         time.sleep(.5)
-        for sec in random.sample(self.sections, len(self.sections)):
+        for sec in random.sample(self.boxes, len(self.boxes)):
             self.glowStrip(*sec, col, 1)
         time.sleep(.25)
         self.fadeXStrip(0, self.max, col)
@@ -139,10 +156,9 @@ class HacDCStrip:
             self, strip: int, start: int, end: int,
             col: RGBW, wait_ms: int = 100):
         states = self.states.copy()
-        self.setSectionColor(strip, start, end, col)
-        self.show()
-        time.sleep(wait_ms/1000.)
-        self.resetSectionColor(strip, start, end, states[strip])
+        self.setBoxColor(strip, start, end, col)
+        self.show(wait_ms)
+        self.resetBoxColor(strip, start, end, states)
         self.show()
 
     ###########################################################################
@@ -152,9 +168,8 @@ class HacDCStrip:
         for a in range(0,90,step):
             m = math.sin(math.radians(a))
             c = RGBW(int(col.r*m), int(col.g*m), int(col.b*m), int(col.w*m))
-            self.setSectionColor(strip, start, end, c)
-            self.show()
-            time.sleep(wait_ms/1000.)
+            self.setBoxColor(strip, start, end, c)
+            self.show(wait_ms)
 
     def fadeXStrip(
             self, start: int, end: int,
@@ -163,32 +178,47 @@ class HacDCStrip:
             m = math.cos(math.radians(a))
             c = RGBW(int(col.r*m), int(col.g*m), int(col.b*m), int(col.w*m))
             self.setXStripColor(start, end, c)
-            self.show()
-            time.sleep(wait_ms/1000.)
+            self.show(wait_ms)
 
     ###########################################################################
     # These functions write on all strips at once
+    def setSectionColor(self, sec: int, col: RGBW):
+        assert 0 <= sec < self.nsc
+        start, end = self.sec[sec], self.sec[sec+1]
+        self.setXStripColor(start, end, col)
+
+    def resetSectionColor(self, sec: int, states: np.ndarray):
+        assert len(states.shape) == 2
+        assert 0 <= sec < self.nsc
+        start, end = self.sec[sec], self.sec[sec+1]
+        assert 0 <= start <= end <= states.shape[1]
+        for strip in range(states.shape[0]):
+            for p in range(start, end):
+                self.setPixelColor(strip, p, int(states[strip,p]))
+
     def setXStripColor(self, start: int, end: int, col: RGBW):
         for p in range(start, end):
             self.setXPixelColor(p, col)
 
-    def setXPixelColor(self, n: int, col: RGBW):
+    def setXPixelColor(self, p: int, col: RGBW):
         for strip in range(self.states.shape[0]):
-            self.setPixelColor(strip, n, col)
+            self.setPixelColor(strip, p, col)
 
     ###########################################################################
-    def setSectionColor(self, strip: int, start: int, end: int, col: RGBW):
+    def setBoxColor(self, strip: int, start: int, end: int, col: RGBW):
         for p in range(start, end):
             self.setPixelColor(strip, p, col)
 
-    def resetSectionColor(self, strip: int, start: int, end: int, state: np.ndarray):
-        assert state.size >= end >= start, f"{state.size} {end}-{start}={end-start}"
+    def resetBoxColor(self, strip: int, start: int, end: int, states: np.ndarray):
+        assert len(states.shape) == 2
+        assert 0 <= strip < states.shape[0]
+        assert 0 <= start <= end <= states.shape[1]
         for p in range(start, end):
-            self.setPixelColor(strip, p, int(state[p]))
+            self.setPixelColor(strip, p, int(states[strip,p]))
 
-    def setPixelColor(self, strip: int, n: int, col: RGBW):
-        self.states[strip,n] = col
-        self.strips[strip].setPixelColor(n, col)
+    def setPixelColor(self, strip: int, p: int, col: RGBW):
+        self.states[strip,p] = col
+        self.strips[strip].setPixelColor(p, col)
 
     ###########################################################################
     def show(self, wait_ms: int = 0):
@@ -205,10 +235,25 @@ class HacDCStrip:
         time.sleep(wait_ms/1000.)
 
     ###############################################################################
+    def led_send_cmd(self, cmd):
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.connect(self.lm1)
+                sock.sendall(cmd.encode())
+                sock.recv(3)
+            except Exception as e:
+                print("SEND", e)
+                pass
+
+    ###############################################################################
     def snd_send_cmd(self, cmd):
         import socket
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.connect(('localhost', self.spt))
-            sock.sendall(cmd.encode())
+            try:
+                sock.connect(('localhost', self.spt))
+                sock.sendall(cmd.encode())
+            except:
+                pass
 
 ###############################################################################

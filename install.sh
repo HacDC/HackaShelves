@@ -25,33 +25,40 @@ else
 	echo "Preserving existing config file"
 fi
 
+# Function that enables and starts a systemd service
+install_service() {
+    local srv_name=$1
+    cp systemd/${srv_name}.service ${SYSTEMD_DIR}
+    systemctl stop ${srv_name}
+    systemctl enable ${srv_name}
+    systemctl start  ${srv_name}
+}
+
 # Install the LED server (merge all python scripts into one)
-cat LEDServer/hacdc_strip.py LEDServer/hacdc.server.py > ${INSTALL_DIR}/led_server.py
+cat LEDServer/hacdc_strip.py LEDServer/hacdc_server.py > ${INSTALL_DIR}/led_server.py
 chmod 0700 ${INSTALL_DIR}/led_server.py
+install_service led
 
-# Install the sound server
-cp SndServer/snd_server.py ${INSTALL_DIR}
-chmod 0700 ${INSTALL_DIR}/snd_server.py
-chown hacdc:hacdc ${INSTALL_DIR}/snd_server.py
+if [ "$HOSTNAME" == "lumen0" ]
+then
+    # Install the sound server
+    cp SndServer/snd_server.py ${INSTALL_DIR}
+    chmod 0700 ${INSTALL_DIR}/snd_server.py
+    chown hacdc:hacdc ${INSTALL_DIR}/snd_server.py
+    install_service snd
 
-# Install the Discord bot
-cp DiscordBot/discord_bot.py ${INSTALL_DIR}
-chmod 0700 ${INSTALL_DIR}/discord_bot.py
-chown nobody:daemon ${INSTALL_DIR}/discord_bot.py
+    # Install the Discord bot
+    cp DiscordBot/discord_bot.py ${INSTALL_DIR}
+    chmod 0700 ${INSTALL_DIR}/discord_bot.py
+    chown nobody:daemon ${INSTALL_DIR}/discord_bot.py
+    install_service discord
 
-# Install the NetWatch bot
-cp NetWatch/netwatch_bot.py ${INSTALL_DIR}
-chmod 0700 ${INSTALL_DIR}/netwatch_bot.py
-chown nobody:daemon ${INSTALL_DIR}/netwatch_bot.py
-
-# Install the systemd service scripts
-cp systemd/*.service ${SYSTEMD_DIR}
-for srv in systemd/*.service
-do
-	srv_name=$(basename ${srv})
-	systemctl enable ${srv_name}
-	systemctl start  ${srv_name}
-done
+    # Install the NetWatch bot
+    cp NetWatch/netwatch_bot.py ${INSTALL_DIR}
+    chmod 0700 ${INSTALL_DIR}/netwatch_bot.py
+    chown nobody:daemon ${INSTALL_DIR}/netwatch_bot.py
+    install_service netwatch
+fi
 
 # Restart systemd for good measure
 systemctl daemon-reload
