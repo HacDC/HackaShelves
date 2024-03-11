@@ -29,7 +29,7 @@ def init_led():
 def get_cmd(net):
     # Wait for a connection
     conn, addr = net.accept()
-    conn.settimeout(10.)
+    conn.settimeout(5.)
 
     # Receive data in small chunks
     cmd = ""
@@ -108,10 +108,12 @@ def main():
         led = init_led()
         run(net, led)
     except KeyboardInterrupt:
-        pass
+        import traceback
+        traceback.print_exc()
 
     net.close()
     led.lightsaber_off()
+    print()
 
 ###############################################################################
 if __name__ == '__main__':

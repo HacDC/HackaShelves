@@ -122,7 +122,7 @@ class HacDCStrip:
             time.sleep(wait_ms/1000.)
 
     ###########################################################################
-    def let_me_the_fuck_in_anim(self, repeat = 3, wait_ms: int = 100):
+    def let_me_the_fuck_in_anim(self, repeat = 5, wait_ms: int = 150):
         for r in range(repeat):
             self.let_me_in_once_anim(reverse=1, wait_ms=wait_ms)
             self.led_send_cmd(f"let_me_in_once_anim 0 {wait_ms}")
@@ -240,8 +240,8 @@ class HacDCStrip:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             try:
                 sock.connect(self.lm1)
-                sock.sendall(cmd.encode())
-                sock.recv(3)
+                sock.sendall(f"{cmd}\n".encode())
+                sock.recv(1)
             except Exception as e:
                 print("SEND", e)
                 pass
@@ -252,7 +252,7 @@ class HacDCStrip:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             try:
                 sock.connect(('localhost', self.spt))
-                sock.sendall(cmd.encode())
+                sock.sendall(f"{cmd}\n".encode())
             except:
                 pass
 

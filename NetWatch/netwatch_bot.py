@@ -10,13 +10,13 @@ def led_send_cmd(cmd):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.connect((cfg["lumen1_addr"], cfg["lumen1_port"]))
-            sock.sendall(cmd.encode())
+            sock.sendall(f"{cmd}\n".encode())
     except:
         pass
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.connect(('localhost', cfg["lport"]))
-            sock.sendall(cmd.encode())
+            sock.sendall(f"{cmd}\n".encode())
     except:
         pass
 

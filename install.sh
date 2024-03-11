@@ -28,8 +28,9 @@ fi
 # Function that enables and starts a systemd service
 install_service() {
     local srv_name=$1
-    cp systemd/${srv_name}.service ${SYSTEMD_DIR}
     systemctl stop ${srv_name}
+    cp systemd/${srv_name}.service ${SYSTEMD_DIR}
+    systemctl daemon-reload
     systemctl enable ${srv_name}
     systemctl start  ${srv_name}
 }

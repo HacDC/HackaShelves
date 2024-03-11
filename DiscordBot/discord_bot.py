@@ -9,7 +9,7 @@ def led_send_cmd(cmd):
     import socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect(('localhost', cfg["lport"]))
-        sock.sendall(cmd.encode())
+        sock.sendall(f"{cmd}\n".encode())
 
 
 ###############################################################################
